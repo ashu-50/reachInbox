@@ -25,11 +25,11 @@ export function createApp(): Express {
       resave: false,
       saveUninitialized: false,
       cookie: {
-  httpOnly: true,
-  secure: env.NODE_ENV === "production",
-  sameSite: env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 1000 * 60 * 60 * 24 * 7
-}
+        httpOnly: true,
+        secure: env.NODE_ENV === "production",
+        sameSite: "none",
+        maxAge: 1000 * 60 * 60 * 24 * 7
+      }
     })
   );
 
