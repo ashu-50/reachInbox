@@ -2,7 +2,12 @@ import { Client } from "@elastic/elasticsearch";
 import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 export const EMAIL_INDEX = "emails";
-export const esClient = new Client({ node: env.ELASTICSEARCH_URL });
+export const esClient = new Client({
+    node: env.ELASTICSEARCH_URL,
+    auth: {
+        apiKey: env.ELASTICSEARCH_API_KEY
+    }
+});
 export async function ensureEmailIndex() {
     try {
         const exists = await esClient.indices.exists({ index: EMAIL_INDEX });

@@ -9,6 +9,7 @@ const envSchema = z.object({
     REDIS_HOST: z.string().min(1),
     REDIS_PORT: z.coerce.number().int().positive(),
     ELASTICSEARCH_URL: z.string().url(),
+    ELASTICSEARCH_API_KEY: z.string().min(1, "ELASTICSEARCH_API_KEY is required"),
     GOOGLE_CLIENT_ID: z.string().optional().default(""),
     GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
     GOOGLE_CALLBACK_URL: z.string().url(),

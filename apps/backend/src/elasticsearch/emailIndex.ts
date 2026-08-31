@@ -4,7 +4,12 @@ import { logger } from "../config/logger.js";
 
 export const EMAIL_INDEX = "emails";
 
-export const esClient = new Client({ node: env.ELASTICSEARCH_URL });
+export const esClient = new Client({
+  node: env.ELASTICSEARCH_URL,
+  auth: {
+    apiKey: env.ELASTICSEARCH_API_KEY
+  }
+});
 
 export async function ensureEmailIndex(): Promise<void> {
   try {
