@@ -1,0 +1,2 @@
+interface Props { title: string; description?: string; }
+export function EmptyState({ title, description }: Props) { return <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#eff8f2] text-[#00a63c]">@</div><p className="text-sm font-medium text-[#30343a]">{title}</p>{description && <p className="mt-1 max-w-sm text-xs text-[#9aa0a6]">{description}</p>}</div>; }

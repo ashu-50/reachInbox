@@ -1,0 +1,61 @@
+name: reachinbox-kimi
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reachinbox-kimi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: reachinbox_kimi
+      POSTGRES_USER: reachinbox
+      POSTGRES_PASSWORD: reachinbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - reachinbox_kimi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reachinbox -d reachinbox_kimi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: reachinbox-kimi-redis
+    restart: unless-stopped
+    # AOF persistence (in addition to the image's default RDB snapshotting)
+    # so BullMQ's delayed jobs survive a Redis container restart, not just
+    # an app/worker restart. See README "Persistence across restarts".
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - reachinbox_kimi_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: reachinbox-kimi-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - reachinbox_kimi_es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  reachinbox_kimi_postgres_data:
+  reachinbox_kimi_redis_data:
+  reachinbox_kimi_es_data:
