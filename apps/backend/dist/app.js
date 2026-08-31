@@ -21,7 +21,7 @@ export function createApp() {
         cookie: {
             httpOnly: true,
             secure: env.NODE_ENV === "production",
-            sameSite: "lax",
+            sameSite: env.NODE_ENV === "production" ? "none" : "lax",
             maxAge: 1000 * 60 * 60 * 24 * 7
         }
     }));
