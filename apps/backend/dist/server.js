@@ -1,18 +1,21 @@
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { prisma, disconnectPrisma } from "./config/prisma.js";
-import { redisClient, disconnectRedis } from "./config/redis.js";
+import { redisClient, connectSessionRedis, disconnectRedis } from "./config/redis.js";
 import { closeEmailQueue } from "./queues/emailQueue.js";
 import { createEmailWorker } from "./workers/emailWorker.js";
 import { ensureEmailIndex, esClient } from "./elasticsearch/emailIndex.js";
 import { createApp } from "./app.js";
 async function main() {
-    // Fail fast and loudly on a broken DB connection rather than starting
-    // and only discovering it on the first request.
+    // Connect to PostgreSQL.
     await prisma.$connect();
     logger.info("[server] database connected");
+    // Connect to the application Redis.
     await redisClient.ping();
     logger.info("[server] redis connected");
+    // Connect to Redis used by express-session.
+    await connectSessionRedis();
+    logger.info("[server] session redis connected");
     // Elasticsearch is best-effort: never block startup on it.
     await ensureEmailIndex();
     const worker = createEmailWorker();
@@ -27,7 +30,9 @@ async function main() {
             return;
         shuttingDown = true;
         logger.info({ signal }, "[server] shutting down");
-        await new Promise((resolve) => server.close(() => resolve()));
+        await new Promise((resolve) => {
+            server.close(() => resolve());
+        });
         await worker.close();
         await closeEmailQueue();
         await disconnectPrisma();
