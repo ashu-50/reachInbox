@@ -2,14 +2,13 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import session from "express-session";
-import { RedisStore } from "connect-redis";
+import RedisStore from "connect-redis";
 import { env } from "./config/env.js";
-import { redisClient } from "./config/redis.js";
+import { sessionRedisClient } from "./config/redis.js";
 import { rootRouter } from "./routes/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 export function createApp() {
     const app = express();
-    // Render runs behind a proxy.
     app.set("trust proxy", 1);
     app.use(helmet());
     app.use(cors({
@@ -19,7 +18,7 @@ export function createApp() {
     app.use(express.json());
     app.use(session({
         store: new RedisStore({
-            client: redisClient
+            client: sessionRedisClient
         }),
         secret: env.SESSION_SECRET,
         resave: false,
