@@ -3,13 +3,15 @@ import { createClient } from "redis";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
 
+/**
+ * ioredis connection used by BullMQ/application code.
+ */
 export function createRedisConnection(
   purpose: "bullmq" | "app"
 ): Redis {
-  const client = new Redis({
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-    maxRetriesPerRequest: purpose === "bullmq" ? null : 3,
+  const client = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest:
+      purpose === "bullmq" ? null : 3,
     enableReadyCheck: true
   });
 
@@ -30,10 +32,18 @@ export function createRedisConnection(
   return client;
 }
 
-// ioredis connection used by BullMQ/app
-export const redisClient = createRedisConnection("app");
+/**
+ * Application/BullMQ Redis connection.
+ */
+export const redisClient =
+  createRedisConnection("app");
 
-// node-redis connection used by connect-redis/session
+/**
+ * Separate node-redis connection used by connect-redis.
+ *
+ * connect-redis v7 expects a node-redis client,
+ * while BullMQ/ioredis uses ioredis.
+ */
 export const sessionRedisClient = createClient({
   url: env.REDIS_URL
 });
@@ -46,15 +56,23 @@ sessionRedisClient.on("error", (err) => {
 });
 
 sessionRedisClient.on("connect", () => {
-  logger.info("[redis] session redis connected");
+  logger.info(
+    "[redis] session redis connected"
+  );
 });
 
+/**
+ * Connect the Redis client used by express-session.
+ */
 export async function connectSessionRedis(): Promise<void> {
   if (!sessionRedisClient.isOpen) {
     await sessionRedisClient.connect();
   }
 }
 
+/**
+ * Close all Redis connections.
+ */
 export async function disconnectRedis(): Promise<void> {
   await redisClient.quit();
 

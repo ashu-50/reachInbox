@@ -15,21 +15,48 @@ export function googleAuthStart(_req, res, next) {
 }
 export async function googleAuthCallback(req, res, next) {
     try {
-        const code = typeof req.query.code === "string" ? req.query.code : undefined;
+        const code = typeof req.query.code === "string"
+            ? req.query.code
+            : undefined;
         if (!code) {
             throw AppError.badRequest("Missing OAuth 'code' query parameter", "MISSING_OAUTH_CODE");
         }
+        // Exchange Google authorization code for Google profile
         const profile = await exchangeCodeForProfile(code);
+        // Find existing user or create a new one
         const user = await findOrCreateUserFromGoogle(profile);
+        // Store authenticated user in the session
         req.session.userId = user.id;
-        req.session.save((err) => {
-            if (err) {
-                logger.error({ err }, "[auth] session save failed");
-                next(err);
-                return;
-            }
-            res.redirect(env.FRONTEND_URL);
+        logger.info({
+            sessionId: req.sessionID,
+            userId: user.id
+        }, "[auth] session created");
+        // IMPORTANT:
+        // Explicitly wait for Redis/session storage to finish
+        // before redirecting the browser.
+        await new Promise((resolve, reject) => {
+            req.session.save((err) => {
+                if (err) {
+                    logger.error({
+                        err,
+                        sessionId: req.sessionID,
+                        userId: user.id
+                    }, "[auth] session save failed");
+                    reject(err);
+                    return;
+                }
+                logger.info({
+                    sessionId: req.sessionID,
+                    userId: user.id
+                }, "[auth] session saved successfully");
+                resolve();
+            });
         });
+        logger.info({
+            sessionId: req.sessionID,
+            frontendUrl: env.FRONTEND_URL
+        }, "[auth] redirecting to frontend");
+        res.redirect(env.FRONTEND_URL);
     }
     catch (err) {
         next(err);
@@ -41,13 +68,21 @@ export function logout(req, res, next) {
             next(err);
             return;
         }
-        res.clearCookie("connect.sid");
+        res.clearCookie("connect.sid", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none"
+        });
         sendSuccess(res, { loggedOut: true });
     });
 }
 export async function me(req, res, next) {
     try {
         const userId = req.session.userId;
+        logger.info({
+            sessionId: req.sessionID,
+            userId: userId ?? null
+        }, "[auth] checking current session");
         if (!userId) {
             sendError(res, 401, "UNAUTHORIZED", "Not signed in.");
             return;
