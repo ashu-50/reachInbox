@@ -17,9 +17,11 @@ export function createRedisConnection(purpose) {
     });
     return client;
 }
+// ioredis connection used by BullMQ/app
 export const redisClient = createRedisConnection("app");
+// node-redis connection used by connect-redis/session
 export const sessionRedisClient = createClient({
-    url: `redis://${env.REDIS_HOST}:${env.REDIS_PORT}`
+    url: env.REDIS_URL
 });
 sessionRedisClient.on("error", (err) => {
     logger.error({ err }, "[redis] session connection error");
